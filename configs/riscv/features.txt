@@ -1,0 +1,139 @@
+🟦 1. Features “globaux” (du CPU / simulation)
+1. simSeconds
+Source : simSeconds
+Interprétation : durée simulée (en secondes simulées).
+Intérêt : certaines attaques pourraient provoquer une durée simulée différente (si elles rajoutent du travail, des accès mémoire, etc.).
+2. simTicks
+Source : simTicks
+Interprétation : nombre de ticks simulés.
+Intérêt : comme ci-dessus ; peut être corrélé avec la “lourdeur” du scénario.
+3. simInsts
+Source : simInsts
+Interprétation : nombre d’instructions exécutées.
+Intérêt : un scénario Spectre-like peut avoir un pattern d’instructions légèrement différent.
+4. ipc (instructions par tick)
+Source : calculé
+ipc = simInsts / simTicks
+Intérêt : la spéculation + les ratés de prédiction peuvent impacter le débit effectif d’instructions.
+🟩 2. Features cache L1D (déjà présents dans ton stats.txt)
+Je me base sur les lignes que tu as montrées :
+board.cache_hierarchy.l1d-cache-0.overallAccesses::total
+board.cache_hierarchy.l1d-cache-0.overallMisses::total
+board.cache_hierarchy.l1d-cache-0.overallMissRate::total
+board.cache_hierarchy.l1d-cache-0.demandAccesses::total
+board.cache_hierarchy.l1d-cache-0.demandMisses::total
+board.cache_hierarchy.l1d-cache-0.demandMissRate::total
+board.cache_hierarchy.l1d-cache-0.demandAvgMissLatency::total
+5. l1d_overall_miss_rate
+Source : board.cache_hierarchy.l1d-cache-0.overallMissRate::total
+Intérêt : un pattern Spectre-like peut modifier légèrement le taux de miss global (plus d’accès “sonde” dans probe[]).
+6. l1d_demand_miss_rate
+Source : board.cache_hierarchy.l1d-cache-0.demandMissRate::total
+Intérêt : même idée mais pour les demandes normales (read+write).
+7. l1d_demand_accesses
+Source : board.cache_hierarchy.l1d-cache-0.demandAccesses::total
+Intérêt : nombre absolu d’accès “données” au L1D.
+8. l1d_demand_misses
+Source : board.cache_hierarchy.l1d-cache-0.demandMisses::total
+Intérêt : nombre absolu de misses.
+9. l1d_misses_per_inst
+Source : calculé
+l1d_misses_per_inst = l1d_demand_misses / simInsts
+Intérêt : normalise par le travail simulé → plus robuste.
+10. l1d_demand_avg_miss_latency
+Source : board.cache_hierarchy.l1d-cache-0.demandAvgMissLatency::total
+Intérêt : temps moyen d’un miss → un pattern d’accès “sonde cache” peut influer.
+(Tu peux ajouter l’équivalent pour L2 s’il existe dans ton stats.txt : board.cache_hierarchy.l2-cache-0....)
+🟨 3. Branch predictor (si dispo)
+Dans ton extrait, je n’ai pas encore vu les stats de prédiction de branche, mais si tu trouves des clés du style :
+board.processor.cores.core.branchPred.lookups
+board.processor.cores.core.branchPred.mispredicted
+tu peux définir :
+11. bp_lookups
+Source : ...branchPred.lookups
+12. bp_mispred
+Source : ...branchPred.mispredicted
+13. bp_mispred_rate
+Source : calculé
+bp_mispred_rate = bp_mispred / bp_lookups
+Intérêt : Spectre joue directement avec le prédicteur, donc ce ratio est très intéressant pour distinguer un run normal d’un run avec beaucoup de spéculation “agressive”.
+Si ces stats n’existent pas, tu peux les ignorer (mais si tu les trouves, elles sont en or 💛).
+🟧 4. Features dérivés de access_times.csv
+C’est là que tu vas vraiment voir la signature Spectre-like : un index (celui de SECRET_VALUE) avec un temps beaucoup plus faible que les autres.
+On suppose que tu as une liste times = [(index, time_cycles), ...] pour 256 entrées.
+14. min_time
+Définition : temps minimal parmi tous les time_cycles.
+Intérêt : Avant / après Spectre-like, la valeur absolue du min peut changer.
+15. min_index
+Définition : index (0–255) pour lequel le temps est minimal.
+Intérêt : dans ton bench, tu sais que le comportement Spectre-like encode SECRET_VALUE, donc min_index ≈ SECRET_VALUE.
+Pour un vrai modèle ML, c’est un super feature (index le plus “favorisé” par le cache).
+16. second_min_time, second_min_index
+Définition : temps et index du 2ᵉ plus rapide.
+Intérêt : voir la séparation entre le meilleur et les autres.
+17. delta_min_second
+Définition : second_min_time - min_time
+Intérêt : un gros écart veut dire qu’un index est clairement privilégié → typique du pattern “un seul index encodé par le cache”.
+18. mean_time
+Définition : moyenne des time_cycles.
+Intérêt : mesure du temps typique; permet de normaliser d’autres features.
+19. median_time
+Définition : médiane des time_cycles.
+Intérêt : plus robuste aux outliers que la moyenne.
+20. std_time
+Définition : écart-type des time_cycles.
+Intérêt : mesure la dispersion → plus la différence entre la valeur “encodée” et les autres est forte, plus la dispersion augmente.
+21. normalized_min
+Définition :
+normalized_min = (min_time - mean_time) / std_time
+Intérêt : valeur normalisée du minimum → si elle est très inférieure à 0, ça veut dire que le min est “anormalement” petit.
+22. fraction_fast
+Définition :
+proportion des indices tels que time_cycles < mean_time - 0.5 * std_time
+(par exemple)
+Intérêt : un comportement Spectre-like tend à rendre un seul index très rapide → fraction_fast sera très faible.
+23. fraction_slow
+Définition :
+proportion des indices avec time_cycles > mean_time + 0.5 * std_time
+Intérêt : optionnel, mais peut donner une idée des “queues” de la distribution.
+24. idx_isolated_score
+Petit score “maison” pour caractériser à quel point le meilleur index est isolé :
+Définition :
+idx_isolated_score = (second_min_time - min_time) / std_time
+Intérêt : plus ce score est grand, plus l’index le plus rapide est isolé → typique d’un indice encodé dans le cache à la Spectre.
+25. topk_gap_ratio
+Définition :
+moyenne des 5 plus petits temps : mean_top5
+moyenne de tous les temps : mean_all
+ratio : topk_gap_ratio = mean_top5 / mean_all
+Intérêt : donne un indicateur simple de “peakedness” (pic de quelques valeurs très rapides par rapport au reste).
+
+
+[
+  simSeconds,
+  simTicks,
+  simInsts,
+  ipc,
+  l1d_overall_miss_rate,
+  l1d_demand_miss_rate,
+  l1d_demand_accesses,
+  l1d_demand_misses,
+  l1d_misses_per_inst,
+  l1d_demand_avg_miss_latency,
+  (éventuellement bp_lookups),
+  (éventuellement bp_mispred_rate),
+
+  min_time,
+  min_index,
+  second_min_time,
+  second_min_index,
+  delta_min_second,
+  mean_time,
+  median_time,
+  std_time,
+  normalized_min,
+  fraction_fast,
+  fraction_slow,
+  idx_isolated_score,
+  topk_gap_ratio,
+]

@@ -1,0 +1,31 @@
+=== Analyse du benchmark Spectre-like (gem5 RISC-V O3) ===
+
+=== Extraits de m5out/stats.txt ===
+simSeconds                                                   = 8e-05
+simTicks                                                     = 79603650
+simInsts                                                     = 406950
+simOps                                                       = 406997
+hostSeconds                                                  = 0.39
+hostInstRate                                                 = 1054731
+board.cache_hierarchy.l1d-cache-0.demandMissRate::total      = 0.029242
+board.cache_hierarchy.l1d-cache-0.overallMissRate::total     = 0.029242
+board.cache_hierarchy.l1d-cache-0.demandAccesses::total      = 113570
+board.cache_hierarchy.l1d-cache-0.demandMisses::total        = 3321
+
+Instructions par tick (simInsts/simTicks) : 5.112203e-03
+
+=== Analyse des temps d'accès (access_times.csv) ===
+Indice le plus rapide      : 0
+Temps le plus bas (cycles) : 18
+
+Top 10 indices les plus rapides :
+ 1. index =   0, time = 18 cycles
+ 2. index =   1, time = 18 cycles
+ 3. index =   2, time = 18 cycles
+ 4. index =   3, time = 18 cycles
+ 5. index =   4, time = 18 cycles
+ 6. index =   6, time = 18 cycles
+ 7. index =   7, time = 18 cycles
+ 8. index =   8, time = 18 cycles
+ 9. index =   9, time = 18 cycles
+10. index =  10, time = 18 cycles
