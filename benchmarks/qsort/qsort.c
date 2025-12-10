@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h> // Required for qsort
+#include <stdint.h>
 
 int compare_ints(const void * a, const void * b) {
     return ( *(int*)a - *(int*)b );

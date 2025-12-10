@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h> // Required for qsort
+#include <stdint.h>
 
 uint32_t crc32_for_byte(uint32_t r) {
     for (int j = 0; j < 8; ++j)

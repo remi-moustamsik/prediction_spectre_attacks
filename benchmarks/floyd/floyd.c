@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h> // Required for qsort
+#include <stdint.h>
 
 #define V 5
 #define INF 99999
