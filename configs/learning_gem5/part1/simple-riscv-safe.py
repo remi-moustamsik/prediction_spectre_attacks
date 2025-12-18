@@ -15,7 +15,7 @@ system.mem_ranges = [AddrRange("512MiB")]
 # --- CPU O3 + prédicteur de branches explicite ---
 system.cpu = RiscvO3CPU()
 
-system.cpu.branchPred = BiModeBP()
+system.cpu.branchPred = TournamentBP()
 
 # (optionnel) un peu plus de profondeur pour favoriser la spéculation
 # system.cpu.numROBEntries = 192
