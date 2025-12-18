@@ -38,3 +38,6 @@ typings
 .DS_Store
 **/.ropeproject
 dataset_samples/*
+results_dataset
+*.riscv
+benchmarks/*

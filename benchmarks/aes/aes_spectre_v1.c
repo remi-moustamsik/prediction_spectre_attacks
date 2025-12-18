@@ -93,6 +93,7 @@ int main(int argc, char **argv) {
 
     // Prevent compiler from optimizing out the results
     printf("Used temp: %d\n", temp);
+    printf("Recovered secret (ground truth): %s\n", secret);
     printf("Done.\n");
     return 0;
 }
